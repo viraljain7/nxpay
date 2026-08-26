@@ -1,7 +1,17 @@
 import axios from "axios";
 
+const getBaseURL = () => {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:3000/api/payment/NxPay";
+    }
+  }
+  return "https://app.nixafin.ai/api/payment/NxPay";
+};
+
 const API = axios.create({
-  baseURL: "https://app.nixafin.ai/api/payment/NxPay",
+  baseURL: getBaseURL(),
   headers: {
     "Content-Type": "application/json",
   },
@@ -11,12 +21,6 @@ const API = axios.create({
 API.interceptors.request.use(
   (config) => {
   
-    const token ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzIsInV1aWQiOiI2YTQ2Zjg1YS04NmI3LTRhMDMtOTMyNi05YThhMGNkY2U0ZjUiLCJyb2xlIjoiVXNlciIsImlhdCI6MTc4NzcyMDk0MSwiZXhwIjoxNzg3ODA3MzQxfQ.AUNZAbzj5bVgCNnhSyhyWaSKnojwxN6yhF5y8WIqWeI"
-    
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     return config;
   },
   (error) => {
