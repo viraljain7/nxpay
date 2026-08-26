@@ -32,7 +32,7 @@ function PaymentSuccess() {
         <div className="transaction">
           <span>Amount Paid</span>
           <strong>
-             ₹ {Number(amountRaw) / 100}
+             ₹ {Number(amountRaw)}
           </strong>
         </div>
 
