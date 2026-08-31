@@ -13,7 +13,7 @@ import { getPaymentDetails, chargeCardPayment, createNetbankingPayment, createOr
 
 function PaymentPage() {
   const { token } = useParams();
-  const [method, setMethod] = useState("UPI");
+  const [method, setMethod] = useState("CARD");
   const [otp, setOtp] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ function PaymentPage() {
   };
 
   const handlePayFailed = (msg) => {
-    window.location.href = `/payment/failed?message=${encodeURIComponent(msg || "Payment Failed")}`;
+    window.location.href = `/payment/failed?message=${encodeURIComponent(msg || "Payment Failed")}&token=${token}&amount=${paymentDetails?.amount || ""}&orderId=${paymentDetails?.orderId || paymentDetails?.paymentId || ""}`;
   };
 
   const handleCardPay = async (cardData) => {
@@ -204,12 +204,13 @@ function PaymentPage() {
 
   if (otp) {
     return (
-      <PaymentLayout payment={paymentDetails}>
+      <PaymentLayout payment={paymentDetails} isOtp={true}>
         <NativeOtp
           paymentId={paymentId}
           customerPhone={paymentDetails?.customerPhone}
           onSuccess={handlePaySuccess}
           onBack={() => setOtp(false)}
+          amount={paymentDetails?.amount}
         />
       </PaymentLayout>
     );
@@ -217,99 +218,57 @@ function PaymentPage() {
 
   return (
     <PaymentLayout payment={paymentDetails}>
-      {token === "demo" && (
-        <div style={{
-          background: "#ebf8ff",
-          border: "1px solid #bee3f8",
-          borderRadius: "12px",
-          padding: "16px",
-          marginBottom: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          fontFamily: "sans-serif",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-        }}>
-          <div>
-            <span style={{ fontSize: "14px", color: "#2b6cb0", fontWeight: "bold", display: "block", marginBottom: "2px" }}>Demo Sandbox Mode</span>
-            <span style={{ fontSize: "12px", color: "#4a5568", lineHeight: "1.4" }}>You are viewing a mock checkout. Choose an option to initialize a real sandbox order on Pine Labs.</span>
+      <div className="w-full flex flex-col gap-6">
+        {token === "demo" && (
+          <div className="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+            <div>
+              <span className="text-sm text-blue-800 font-bold block mb-0.5">Demo Sandbox Mode</span>
+              <span className="text-xs text-blue-600 leading-normal">You are viewing a mock checkout. Choose an option to initialize a real sandbox order on Pine Labs.</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleCreateSandboxOrder}
+                disabled={payLoading}
+                className="bg-white text-blue-600 border border-blue-300 rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-blue-50 hover:border-blue-400 active:bg-blue-100 transition-all shadow-sm"
+              >
+                Quick Create (₹500)
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                disabled={payLoading}
+                className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-blue-700 transition-all shadow-sm"
+              >
+                Customize & Create
+              </button>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              onClick={handleCreateSandboxOrder}
-              disabled={payLoading}
-              style={{
-                background: "#ebf8ff",
-                color: "#2b6cb0",
-                border: "1px solid #90cdf4",
-                borderRadius: "8px",
-                padding: "8px 16px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap"
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = "#bee3f8";
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = "#ebf8ff";
-              }}
-            >
-              Quick Create (₹500)
-            </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              disabled={payLoading}
-              style={{
-                background: "#3182ce",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "8px 16px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                boxShadow: "0 2px 4px rgba(49, 130, 206, 0.2)",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap"
-              }}
-              onMouseOver={(e) => e.target.style.background = "#2b6cb0"}
-              onMouseOut={(e) => e.target.style.background = "#3182ce"}
-            >
-              Customize & Create
-            </button>
+        )}
+
+        <div className="w-full flex flex-col md:flex-row gap-6">
+          <PaymentMethodSelector selected={method} onSelect={setMethod} />
+
+          <div className="flex-1 w-full pl-0 md:pl-2">
+            {method === "UPI" && (
+              <UpiPayment
+                amount={paymentDetails.amount}
+                orderId={token}
+                onSuccess={handlePaySuccess}
+                onError={handlePayFailed}
+              />
+            )}
+
+            {(method === "CARD" || method === "INTL_CARD") && (
+              <CardPayment
+                amount={paymentDetails.amount}
+                onSubmit={handleCardPay}
+                loading={payLoading}
+              />
+            )}
+
+          
           </div>
         </div>
-      )}
-
-      <PaymentMethodSelector selected={method} onSelect={setMethod} />
-
-      {method === "UPI" && (
-        <UpiPayment
-          amount={paymentDetails.amount}
-          orderId={token}
-          onSuccess={handlePaySuccess}
-          onError={handlePayFailed}
-        />
-      )}
-
-      {method === "CARD" && (
-        <CardPayment
-          amount={paymentDetails.amount}
-          onSubmit={handleCardPay}
-          loading={payLoading}
-        />
-      )}
-
-      {method === "NETBANKING" && (
-        <NetBankingPayment
-          amount={paymentDetails.amount}
-          onSubmit={handleNetBankingPay}
-          loading={payLoading}
-        />
-      )}
+      </div>
 
       <CreateOrderModal
         isOpen={isModalOpen}
